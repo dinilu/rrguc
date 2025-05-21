@@ -389,7 +389,7 @@ ui <- navbarPage(
       scrollY = "400px",
       paging = FALSE
     ))
-    
+
     # Función para procesar los datos genéticos (MODIFICADA)
     resultados <- reactive({
       req(input$process_data)  # Solo se ejecuta con el botón Process Data
@@ -535,7 +535,7 @@ ui <- navbarPage(
       # Directamente sobre mat no puedo porque es mi entrada de datos, no mi tabla. 
       # Tampoco puedo añadir un select (´logLo, --logLe) porque entonces ni si quiera los calcula
       resultados()$selected_alleles %>%
-        select(-logLo, -logLe) |> 
+        select(-logLo, -logLe) %>%
         mutate(across(where(is.numeric), ~round(., 3)))
     },
     options = list(
@@ -617,9 +617,6 @@ ui <- navbarPage(
       lengthChange = FALSE,
       searching = FALSE
     ),
-    # striped = TRUE, 
-    # hover = TRUE, 
-    # spacing = "m",
     rownames = FALSE)
     
     
@@ -653,7 +650,7 @@ ui <- navbarPage(
       })
     })
     
-    output$group_summary_table <- renderDataTable({
+    output$group_summary_table <- DT::renderDataTable({
       req(resultados())
       resultados()$group_summary
     })
@@ -670,8 +667,7 @@ ui <- navbarPage(
     },
     rownames = FALSE
     )
-    
-    
+
     # Gráfico de diversidad genética conservada con nmax dinámico
     output$diversity_plot <- renderPlotly({
       req(input$fst)               
@@ -739,20 +735,23 @@ ui <- navbarPage(
     
     # 2) Map PSA Sample
     output$map_psa_sample <- renderLeaflet({
-      req(standardized_data(), psa_por_region())
+      req(standardized_data(), psa_con_R())
       df <- standardized_data() %>%
         filter(!is.na(lat), !is.na(lon)) %>%
-        left_join(psa_por_region(), by = c("group" = "Group"))
+        # Unimos solo el % PSA Sample de la tabla combinada
+        left_join(
+          psa_con_R() %>% select(Group, `% PSA Sample`),
+          by = c("group" = "Group")
+        ) %>%
+        mutate(psa_s = `% PSA Sample`)   # ahora psa_s está en [0,1]
       
-      # convertir % a [0,1]
-      df <- df %>% mutate(psa_s = `% PSA Sample`)
       pal <- colorNumeric("Blues", domain = df$psa_s)
       scale_rad <- function(x) scales::rescale(x, to = c(5, 15))
       
       leaflet(df) %>%
         addTiles() %>%
         addCircleMarkers(
-          ~lon, ~lat,
+          lng = ~lon, lat = ~lat,
           radius    = ~scale_rad(psa_s),
           fillColor = ~pal(psa_s),
           color     = "#333", weight = 0.7, fillOpacity = 0.8,
@@ -769,19 +768,23 @@ ui <- navbarPage(
     
     # 3) Map PSA Population
     output$map_psa_pop <- renderLeaflet({
-      req(standardized_data(), psa_por_region())
+      req(standardized_data(), psa_con_R())
       df <- standardized_data() %>%
         filter(!is.na(lat), !is.na(lon)) %>%
-        left_join(psa_por_region(), by = c("group" = "Group"))
+        # Unimos solo el % PSA Pop de la tabla combinada
+        left_join(
+          psa_con_R() %>% select(Group, `% PSA Pop`),
+          by = c("group" = "Group")
+        ) %>%
+        mutate(psa_p = `% PSA Pop`)   # ahora psa_p está en [0,1]
       
-      df <- df %>% mutate(psa_p = `% PSA Pop`)
       pal <- colorNumeric("Greens", domain = df$psa_p)
       scale_rad <- function(x) scales::rescale(x, to = c(5, 15))
       
       leaflet(df) %>%
         addTiles() %>%
         addCircleMarkers(
-          ~lon, ~lat,
+          lng = ~lon, lat = ~lat,
           radius    = ~scale_rad(psa_p),
           fillColor = ~pal(psa_p),
           color     = "#333", weight = 0.7, fillOpacity = 0.8,
@@ -794,7 +797,6 @@ ui <- navbarPage(
           title = "% PSA Pop", labFormat = labelFormat(suffix = "%"), opacity = 1
         ) %>%
         addMiniMap(toggleDisplay = TRUE)
-        
     })
   }
 
