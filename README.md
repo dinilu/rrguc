@@ -1,2 +1,2 @@
-# rrguc
-Shiny app to calculate Relevant Genetic Units for Conservation
+# Proyecto rrguc
+Este es el repositorio de la Shiny-app "rrguc".
