@@ -114,7 +114,7 @@ ui <- navbarPage(
             tags$summary(
               div(class = "custom-title", icon("table", style = "color: #001f3d;"), "Data Preview")
             ),
-            withSpinner(dataTableOutput("data_head"))
+            withSpinner(DT::DTOutput("data_head"))
           )
         )
       )
@@ -162,7 +162,7 @@ ui <- navbarPage(
       titlePanel("Genetic results"),
       mainPanel(
         wellPanel(
-          h4("Global Summary Table"), uiOutput("alleles_summary"), withSpinner(dataTableOutput("analysis_table"))
+          h4("Global Summary Table"), uiOutput("alleles_summary"), withSpinner(DT::DTOutput("analysis_table"))
         ),
         wellPanel(
           h4("Needed Pops Plot"),
@@ -174,7 +174,7 @@ ui <- navbarPage(
             tags$summary(
               div(class = "custom-title", icon("table"), "Needed Pops")
             ),
-            withSpinner(dataTableOutput("group_needed_table"))
+            withSpinner(DT::DTOutput("group_needed_table"))
           )
         ),
         
@@ -182,7 +182,7 @@ ui <- navbarPage(
         titlePanel("Sampling Effort Ratio"),
         wellPanel(
           h4("PSA × R Table"),
-          dataTableOutput("psa_table")
+          DT::DTOutput("psa_table")
            
         ),
               
@@ -192,7 +192,7 @@ ui <- navbarPage(
             tags$summary(
               div(class = "custom-title", icon("table"), "Summary by Group")
             ),
-            withSpinner(dataTableOutput("group_summary_table"))
+            withSpinner(DT::DTOutput("group_summary_table"))
         ),
           h4("Graphics"),
           withSpinner(plotlyOutput("global_plot", height = "400px")),
@@ -380,7 +380,7 @@ ui <- navbarPage(
                          fill = TRUE, fillOpacity = 0.7)
     })
     
-    output$data_head <- renderDataTable({
+    output$data_head <- DT::renderDT({
       req(standardized_data())
       standardized_data()
     },
