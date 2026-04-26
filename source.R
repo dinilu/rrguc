@@ -335,7 +335,7 @@ RGUC <- function(mat, pops, allele_perc = 0.1, pop_perc = 0.1, Fst = 0.099, grou
 
 # -----------------------------------------------------------------------------  
 # Función principal para procesar el análisis genético de forma genérica.
-procesar_genetica <- function(matriz, pop_info, allele_perc = 0.1, pop_perc = 0.1, Fst = 0.099) {
+genetic_process <- function(matriz, pop_info, allele_perc = 0.1, pop_perc = 0.1, Fst = 0.099) {
   
   # matriz <- matriz_o
   # pop_info <- data.frame(pop = sierras$population, group = sierras$group)

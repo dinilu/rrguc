@@ -27,6 +27,11 @@ custom_theme <- bs_theme(
   code_font = font_google("Source Code Pro")
 )
 
+# Permite subir hasta 50 MB
+options(shiny.maxRequestSize = 200 * 1024^2)
+
+
+
 # Definir interfaz de usuario
 ui <- navbarPage(
   id = "navbar",
@@ -93,8 +98,8 @@ ui <- navbarPage(
                      tags$summary("📊 Required columns"),
                      tags$div(style = "margin-left: 20px; margin-top: 5px;",
                               tags$ul(
-                                tags$li(HTML("<b>Mandatory:</b> Population")),
-                                tags$li(HTML("<b>Optional:</b> Sample, Group, Longitude, Latitud"))
+                                tags$li(HTML("<b>Mandatory:</b> Population and Group")),
+                                tags$li(HTML("<b>Optional:</b> Sample, Longitude, Latitud"))
                               )
                      )
                    )
@@ -213,7 +218,7 @@ ui <- navbarPage(
         column(
           width = 4,
           wellPanel(
-            h4("Probabilidad alelos raros(R)"),
+            h4("Representative R-value"),
             withSpinner(leafletOutput("map_R", height = "350px"))
           )
         ),
@@ -306,9 +311,10 @@ ui <- navbarPage(
     })
     
     column_names <- reactive({
-      req(input$pop_col != "None")
-      cols_to_remove <- c(input$pop_col)
-      newcols_names <- c("pop")
+      req(input$pop_col != "None",
+          input$group_col != "None")
+      cols_to_remove <- c(input$pop_col, input$group_col)
+      newcols_names <- c("pop", "group")
       
       if(input$lon_col != "None") {
         cols_to_remove <- c(cols_to_remove, input$lon_col)
@@ -324,10 +330,10 @@ ui <- navbarPage(
         cols_to_remove <- c(cols_to_remove, input$sample_col)
         newcols_names <- c(newcols_names, "sample")
       }
-      if(input$group_col != "None") {
-        cols_to_remove <- c(cols_to_remove, input$group_col)
-        newcols_names <- c(newcols_names, "group")
-      }
+      # if(input$group_col != "None") {
+      #   cols_to_remove <- c(cols_to_remove, input$group_col)
+      #   newcols_names <- c(newcols_names, "group")
+      # }
       
       data.frame(col_names = cols_to_remove,
                  standard_col_names = newcols_names)
@@ -380,7 +386,7 @@ ui <- navbarPage(
                          fill = TRUE, fillOpacity = 0.7)
     })
     
-    output$data_head <- DT::renderDT({
+    output$data_head <- DT::renderDataTable({
       req(standardized_data())
       standardized_data()
     },
@@ -424,7 +430,7 @@ ui <- navbarPage(
         
         # Llamo a la función de procesamiento que devuelve una lista 'salida'
         
-        salida <- procesar_genetica(
+        salida <- genetic_process(
           matriz_genetica,
           pop_info,
           allele_perc = input$allele_perc,
@@ -688,7 +694,7 @@ ui <- navbarPage(
           x = "Number of Populations",
           y = "Genetic diversity conserved",
           title = paste0(
-            "Conserved diversity (Fst = ", input$fst, ")"
+            "Conserved genetic diversity (Fst = ", input$fst, ")"
           )
         ) +
         theme_minimal()
