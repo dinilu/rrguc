@@ -3,91 +3,239 @@ library(tidyr)
 library(ggplot2)
 
 
+has_valid_coordinates <- function(dta) {
+  all(c("lat", "lon") %in% names(dta)) &&
+    any(!is.na(suppressWarnings(as.numeric(dta$lat))) &
+          !is.na(suppressWarnings(as.numeric(dta$lon))))
+}
+
+read_uploaded_data <- function(path, filename) {
+  if (grepl("\\.csv$", filename, ignore.case = TRUE)) {
+    data.table::fread(
+      path,
+      sep = ";",
+      data.table = FALSE,
+      check.names = FALSE
+    )
+  } else if (grepl("\\.xls$|\\.xlsx$", filename, ignore.case = TRUE)) {
+    as.data.frame(readxl::read_excel(path))
+  } else {
+    stop("Unsupported file format")
+  }
+}
+
+
+
+standardize_uploaded_data <- function(dta, col_map) {
+  info_idx <- match(col_map$col_names, names(dta))
+  info_idx <- info_idx[!is.na(info_idx)]
+  
+  genetic_idx <- setdiff(seq_along(dta), info_idx)
+  is_num <- vapply(dta[genetic_idx], is.numeric, logical(1))
+  genetic_idx <- genetic_idx[is_num]
+  
+  pop_info <- dta[info_idx]
+  names(pop_info) <- col_map$standard_col_names
+  
+  cbind(pop_info, dta[genetic_idx])
+}
+
+
+make_column_map <- function(pop_col, group_col, sample_col = NULL,
+                            lon_col = NULL, lat_col = NULL) {
+  cols_to_remove <- c(pop_col, group_col)
+  newcols_names <- c("pop", "group")
+  
+  if (!is.null(lon_col) && lon_col != "None") {
+    cols_to_remove <- c(cols_to_remove, lon_col)
+    newcols_names <- c(newcols_names, "lon")
+  }
+  
+  if (!is.null(lat_col) && lat_col != "None") {
+    cols_to_remove <- c(cols_to_remove, lat_col)
+    newcols_names <- c(newcols_names, "lat")
+  }
+  
+  if (!is.null(sample_col) && sample_col != "None") {
+    cols_to_remove <- c(cols_to_remove, sample_col)
+    newcols_names <- c(newcols_names, "sample")
+  }
+  
+  data.frame(
+    col_names = cols_to_remove,
+    standard_col_names = newcols_names,
+    stringsAsFactors = FALSE
+  )
+}
+
+extract_genetic_inputs <- function(dta) {
+  meta_cols <- intersect(c("pop", "group", "lon", "lat", "sample"), names(dta))
+  genetic_cols <- setdiff(names(dta), meta_cols)
+  
+  genetic_cols <- genetic_cols[
+    vapply(dta[genetic_cols], is.numeric, logical(1))
+  ]
+  
+  matriz_genetica <- as.data.frame(dta[genetic_cols])
+  
+  pop_info <- dta[intersect(c("pop", "group"), names(dta))]
+  
+  list(
+    matriz_genetica = matriz_genetica,
+    pop_info = pop_info,
+    genetic_cols = genetic_cols
+  )
+}
+
+
+make_psa_r_table <- function(group_summary, rtable) {
+  df <- group_summary
+  
+  samp_cols <- grep("^samp\\.%.", names(df), value = TRUE)
+  pop_cols  <- grep("^pop\\.%.",  names(df), value = TRUE)
+  regions   <- sub("^samp\\.%.", "", samp_cols)
+  
+  samp_mat <- as.matrix(df[samp_cols])
+  pop_mat  <- as.matrix(df[pop_cols])
+  
+  totalSample <- colSums(samp_mat > 0, na.rm = TRUE)
+  totalPopulation <- colSums(pop_mat > 0, na.rm = TRUE)
+  
+  exclusiveSample <- vapply(seq_along(samp_cols), function(i) {
+    sum(samp_mat[, i] > 0 & rowSums(samp_mat[, -i, drop = FALSE] > 0) == 0)
+  }, numeric(1))
+  
+  exclusivePop <- vapply(seq_along(pop_cols), function(i) {
+    sum(pop_mat[, i] > 0 & rowSums(pop_mat[, -i, drop = FALSE] > 0) == 0)
+  }, numeric(1))
+  
+  resumen <- data.frame(
+    Group = regions,
+    `Total Alleles Sample` = totalSample,
+    `Total Alleles Pop` = totalPopulation,
+    `Exclusive Alleles Sample` = exclusiveSample,
+    `Exclusive Alleles Pop` = exclusivePop,
+    `Shared Alleles Sample` = totalSample - exclusiveSample,
+    `Shared Alleles Pop` = totalPopulation - exclusivePop,
+    check.names = FALSE
+  )
+  
+  resumen$`% PSA Sample` <- round(resumen$`Total Alleles Sample` / sum(resumen$`Total Alleles Sample`), 2)
+  resumen$`% PSA Pop` <- round(resumen$`Total Alleles Pop` / sum(resumen$`Total Alleles Pop`), 2)
+  
+  rt_noall <- rtable[rtable$Group != "All", c("Group", "R"), drop = FALSE]
+  
+  out <- merge(resumen, rt_noall, by = "Group", all.x = TRUE, sort = FALSE)
+  
+  out$R <- round(out$R, 2)
+  out$R_rel <- out$R / sum(out$R, na.rm = TRUE)
+  
+  score_sample <- out$`% PSA Sample` + out$R_rel
+  score_pop <- out$`% PSA Pop` + out$R_rel
+  
+  out$`Priority score sample` <- score_sample / sum(score_sample, na.rm = TRUE)
+  out$`Priority score pop` <- score_pop / sum(score_pop, na.rm = TRUE)
+  
+  out$R_rel <- round(out$R_rel, 2)
+  out$`Priority score sample` <- round(out$`Priority score sample`, 2)
+  out$`Priority score pop` <- round(out$`Priority score pop`, 2)
+  
+  out[order(out$`Total Alleles Sample`, decreasing = TRUE), ]
+}
+
+make_data_preview <- function(dta, max_rows = 50, max_cols = 100) {
+  dta[
+    seq_len(min(nrow(dta), max_rows)),
+    seq_len(min(ncol(dta), max_cols)),
+    drop = FALSE
+  ]
+}
+find_best_match <- function(patterns, vector){
+  
+  matches <- grep(paste(paste("^", patterns, sep = ""), collapse = "|"), vector, ignore.case = TRUE, value = TRUE)
+  # matches <- sapply(patterns,
+  #                   FUN = function(p, v){
+  #                     grep(p, v, ignore.case = TRUE, value = TRUE)
+  #                     },
+  #                   vector)
+  if(length(matches) > 0){ 
+    matches[1]
+  } else {
+    "None"
+  }
+}
+
+
 # -----------------------------------------------------------------------------  
 # Función para seleccionar alelos de baja frecuencia 
 select_alleles <- function(mat, pops, allele_perc = 0.1, pop_perc = 0.1) {
-
-  # mat <- matriz_o
-  # pops <- sierras$population
-  # allele_perc <- 0.1
-  # pop_perc <- 0.1
-
-  # Calcular frecuencia de cada alelo (proporción de muestras que lo presentan)
-  a_perc <- colMeans(mat > 0, na.rm = TRUE)
   
-  # Calcular frecuencia de poblaciones en las que aparece cada alelo
-  p_perc <- mat |> 
-    bind_cols(pop = pops) |>
-    group_by(pop) |> 
-    summarize(across(everything(), sum)) |> 
-    select(-pop) |> 
-    as.data.frame()
+  mat_num <- as.data.frame(mat)
   
-  p_perc <- colMeans(p_perc > 0, na.rm = TRUE)
+  # Presencia por individuo
+  mat_bin <- as.data.frame(lapply(mat_num, function(x) as.integer(x > 0)))
   
-  # Seleccionar aquellos con frecuencia alélica y porcentaje de poblaciones
-  # inferiores a los estipulados
-  colnames(mat)[a_perc <= allele_perc & p_perc <= pop_perc]
+  # Frecuencia de muestras
+  a_perc <- colMeans(mat_bin, na.rm = TRUE)
+  
+  # Frecuencia de poblaciones
+  pop_factor <- factor(pops)
+  
+  pop_sums <- rowsum(
+    as.matrix(mat_bin),
+    group = pop_factor,
+    reorder = FALSE,
+    na.rm = TRUE
+  )
+  
+  p_perc <- colMeans(pop_sums > 0, na.rm = TRUE)
+  
+  names(mat)[a_perc <= allele_perc & p_perc <= pop_perc]
 }
-
 
 # -----------------------------------------------------------------------------  
 # Función interna para calcular índices genéticos (.compute_genetic_indices)
 .compute_genetic_indices <- function(mat, pops, alleles) {
   
-  # mat <- matriz_o
-  # pops <- sierras$population
-  # allele_perc <- 0.1
-  # pop_perc <- 0.2
-  # alleles <- select_alleles(mat, pops, allele_perc, pop_perc)
-  
-  # Validación crítica: asegurar que 'alleles' no esté vacío y exista en 'mat'
   validate(
     need(length(alleles) > 0, "No hay alelos válidos para analizar"),
     need(all(alleles %in% colnames(mat)), "Algunos alelos no existen en los datos")
   )
   
-  # Conversión a binario (manejo explícito de NAs)
-  mat_bin <- mat %>%
-    mutate(across(everything(), ~ifelse(. > 0, 1, 0))) %>%
-    as.data.frame()
+  allele_matrix <- mat[, alleles, drop = FALSE]
+  allele_matrix <- as.data.frame(lapply(allele_matrix, function(x) as.integer(x > 0)))
   
-  # Selección segura de columnas (evita errores si 'alleles' no existe)
-  allele_matrix <- mat_bin %>% 
-    select(any_of(alleles))  # Usa any_of() en lugar de all_of() para evitar errores
-  
-  # Validación adicional
   if (ncol(allele_matrix) == 0) {
     stop("Ningún alelo válido disponible después de la selección")
   }
   
-  # Frecuencia promedio de cada alelo.
-  allele_percentage <- apply(allele_matrix, 2, mean, na.rm = TRUE)
-
-  samples <- apply(allele_matrix, 2, \(x) sum(x > 0, na.rm = TRUE))
-  samples_percentage <- samples / nrow(allele_matrix)
+  allele_mat <- as.matrix(allele_matrix)
   
-  # Agrupar por población y calcular el promedio por marcador.
-  allele_pops_matrix <- bind_cols(pop = pops, allele_matrix) %>% 
-    group_by(pop) %>% 
-    summarise(across(everything(), \(x) mean(x, na.rm = TRUE))) %>% 
-    column_to_rownames("pop")
+  allele_percentage <- colMeans(allele_mat, na.rm = TRUE)
+  samples <- colSums(allele_mat > 0, na.rm = TRUE)
+  samples_percentage <- samples / nrow(allele_mat)
   
-  # Contar cuántas poblaciones presentan cada alelo y 
-  pop_count <- apply(allele_pops_matrix, 2, function(x) sum(x > 0, na.rm = TRUE))
+  pop_factor <- factor(pops)
+  
+  pop_sum <- rowsum(
+    allele_mat,
+    group = pop_factor,
+    reorder = FALSE,
+    na.rm = TRUE
+  )
+  
+  pop_n <- as.numeric(table(pop_factor))
+  allele_pops_matrix <- sweep(pop_sum, 1, pop_n, "/")
+  
+  pop_count <- colSums(allele_pops_matrix > 0, na.rm = TRUE)
   pop_percentage <- pop_count / nrow(allele_pops_matrix)
   
-  # Cálculo de índices Lo y Le.
   Lo <- (1 - allele_percentage)^(2 * pop_count)
-  Le <- (1 - apply(allele_pops_matrix, MARGIN = 2, FUN = mean))^(2 * nrow(allele_pops_matrix))
+  Le <- (1 - colMeans(allele_pops_matrix, na.rm = TRUE))^(2 * nrow(allele_pops_matrix))
   
-  # Transformaciones logarítmicas.
-  # logLo <- -log(Lo)
-  # logLe <- -log(Le)
   logLo <- -log(Lo + 1e-26)
   logLe <- -log(Le + 1e-26)
   
-  # Organizar resultados en una tabla.
   table_result <- data.frame(
     allele = alleles,
     allele_perc = allele_percentage,
@@ -98,191 +246,144 @@ select_alleles <- function(mat, pops, allele_perc = 0.1, pop_perc = 0.1) {
     Lo = Lo,
     Le = Le,
     logLo = logLo,
-    logLe = logLe
+    logLe = logLe,
+    row.names = NULL
   )
   
-  # Regresión lineal para obtener el coeficiente R.
   lm_logLo <- lm(logLo ~ allele_percentage)
   lm_logLe <- lm(logLe ~ allele_percentage)
   
   R_coef <- coef(lm_logLo)["allele_percentage"] / coef(lm_logLe)["allele_percentage"]
   names(R_coef) <- ""
   
-  # Gráfico de dispersión con líneas de regresión y ecuaciones.
-  table_long <- table_result %>% 
-    pivot_longer(c(logLo, logLe)) 
+  table_long <- tidyr::pivot_longer(table_result, c(logLo, logLe))
   
-  # Calcular rangos para ubicar etiquetas:
-  x_range <- range(table_long$allele_perc, na.rm = TRUE)
   y_range <- range(table_long$value, na.rm = TRUE)
-  label_x <- x_range[1] * 1.2
   label_y1 <- y_range[2] * 0.9
   label_y2 <- y_range[2] * 0.8
   
-  plot_obj <- ggplot(table_long, 
-                     aes(x = allele_perc, 
-                         y = value, 
-                         color = name)) +
+  plot_obj <- ggplot(table_long, aes(x = allele_perc, y = value, color = name)) +
     geom_point() +
     geom_smooth(method = "lm") +
-    stat_regline_equation(aes(label = ..eq.label..),
-                          label.x.npc = 0.2,
-                          label.y = c(label_y1, label_y2),
-                          na.rm = TRUE, output.type = "text") +
+    ggpubr::stat_regline_equation(
+      aes(label = ..eq.label..),
+      label.x.npc = 0.2,
+      label.y = c(label_y1, label_y2),
+      na.rm = TRUE,
+      output.type = "text"
+    ) +
     theme_bw() +
     labs(
       x = "Frecuencia individual",
       y = "–log(Índice)",
       color = NULL
     )
-
-  results <- list(
+  
+  list(
     table = table_result,
     R = R_coef,
     plot = plot_obj
   )
-  
-  results
 }
-
 
 # -----------------------------------------------------------------------------  
 # Función para calcular el PSA de cada alelo
-.calculate_psa <- function(mat, pops, groups, allele_perc, pop_perc) {
+.calculate_psa <- function(mat, pops, groups, alleles) {
   
-  # mat <- matriz_o
-  # pops <- pops
-  # groups <- groups
-  # allele_perc <- 0.1
-  # pop_perc <- 0.5
+  mat <- mat[, alleles, drop = FALSE]
+  mat_bin <- as.data.frame(lapply(mat, function(x) as.integer(x > 0)))
   
-  # Selecciono los alelos raros
-  alleles <- select_alleles(mat, pops, allele_perc, pop_perc)
+  pop_group <- data.frame(
+    pop = pops,
+    group = groups,
+    stringsAsFactors = FALSE
+  )
   
-  # Filtro la matriz y me quedo solo con los alelos raros
-  mat <- mat |> 
-    select(any_of(alleles)) |> 
-    mutate(across(everything(), \(x) if_else(x > 0, 1, 0)))
+  pop_key <- interaction(pop_group$pop, pop_group$group, drop = TRUE)
   
-  # Genero una matriz con el número de individuos con el alelo en cada población.
-  pop_matrix <- mat %>% 
-    bind_cols(pop = pops, group = groups) %>%
-    group_by(pop, group) %>%
-    summarise(across(everything(), \(x) sum(x, na.rm = TRUE))) |> 
-    ungroup()
+  pop_sum <- rowsum(
+    as.matrix(mat_bin),
+    group = pop_key,
+    reorder = FALSE,
+    na.rm = TRUE
+  )
   
-  # Genero una matriz con las poblaciones con el alelo.
-  pop_matrix_bin <- pop_matrix |> select(-c(pop, group)) |> 
-    mutate(across(everything(), \(x) if_else(x > 0, 1, 0))) |> 
-    bind_cols(pop = pop_matrix$pop, group = pop_matrix$group)
+  key_split <- do.call(
+    rbind,
+    strsplit(rownames(pop_sum), "\\.")
+  )
   
-  # Calculo el porcentaje de individuos con el alelo en cada grupo genético.
-  samp_PSA <- pop_matrix |> 
-    select(-pop) |> 
-    group_by(group) |> 
-    summarize(across(everything(), \(x) sum(x, na.rm = TRUE))) |> 
-    mutate(group = paste0("samp.%.", group)) |> 
-    column_to_rownames("group") |> 
-    mutate(across(everything(), \(x) x / nrow(mat))) |> 
-    mutate(across(everything(), \(x) round(x, digits = 3))) |> 
-    t() |> as.data.frame() |> 
-    rownames_to_column("allele")
-
-    # Calculo el porcentaje de poblaciones con el alelo en cada grupo genético.
-  pops_PSA <- pop_matrix_bin |> 
-    select(-pop) |> 
-    group_by(group) |> 
-    summarize(across(everything(), \(x) sum(x, na.rm = TRUE))) |> 
-    mutate(group = paste0("pop.%.", group)) |> 
-    column_to_rownames("group") |> 
-    mutate(across(everything(), \(x) x / length(unique(pops)))) |> 
-    mutate(across(everything(), \(x) round(x, digits = 3))) |> 
-    t() |> as.data.frame() |> 
-    rownames_to_column("allele")
-
-  psa <- left_join(pops_PSA, 
-                   samp_PSA,
-                   by = "allele")
-
-  f2 <- \(x, y, colnames) {
-    # x <- psa[33, 6:9]
-    # y <- psa[33, 2:5]
-    # colnames <- colnames(x)
-    x2 <- which(x == max(x))
-    if(length(x2) == 1) {
-      return(colnames[x2])
-    } else {
-      y2 <- which(y == max(y))
-      if(length(y2) == 1) {
-        return(colnames[y2])
-      } else {
-        w2 <- intersect(x2, y2)
-        if(length(w2) == 1){
-          return(colnames[w2])
-        } else {
-          return(colnames[sample(w2, 1)])
-        }
-      }
-    }
-  }
+  pop_df <- data.frame(
+    pop = key_split[, 1],
+    group = key_split[, 2],
+    stringsAsFactors = FALSE
+  )
   
-  psa %>%
-    rowwise() %>%
-    mutate(PSA.pop = f2(c_across(starts_with("pop.%.")), 
-                        c_across(starts_with("samp.%.")), 
-                        colnames(pops_PSA)[-1])) %>% 
-    mutate(PSA.samp = f2(c_across(starts_with("pop.%.")), 
-                        c_across(starts_with("samp.%.")), 
-                        colnames(samp_PSA)[-1]))  |>
-    mutate(PSA.samp = stringr::str_remove(PSA.samp, "samp.%.")) |>
-    mutate(PSA.pop = stringr::str_remove(string = PSA.pop, "pop.%."))
+  pop_bin <- pop_sum > 0
   
-  # samp_PSA <- t(samp_PSA) |> 
-  #   as.data.frame() |> 
-  #   mutate(PSA.samp = apply(samp_PSA, MARGIN = 2, 
-  #                           FUN = \(x, y) y[which.max(x)], rownames(samp_PSA))) |>
-  #   mutate(PSA.samp = stringr::str_remove(PSA.samp, "samp.%.")) |> 
-  #   rownames_to_column("Group")
-  # 
-  # pops_PSA <- t(pops_PSA) |> 
-  #   as.data.frame() |> 
-  #   mutate(PSA.pop = apply(pops_PSA, MARGIN = 2, FUN = \(x, y) y[which.max(x)], rownames(pops_PSA))) |> 
-  #   mutate(PSA.pop = stringr::str_remove(PSA.pop, "pop.%.")) |> 
-  #   rownames_to_column("Group")
+  groups_unique <- unique(groups)
   
+  samp_PSA <- sapply(groups_unique, function(g) {
+    colSums(pop_sum[pop_df$group == g, , drop = FALSE], na.rm = TRUE) / nrow(mat_bin)
+  })
+  
+  pop_PSA <- sapply(groups_unique, function(g) {
+    colSums(pop_bin[pop_df$group == g, , drop = FALSE], na.rm = TRUE) / length(unique(pops))
+  })
+  
+  samp_PSA <- round(samp_PSA, 3)
+  pop_PSA <- round(pop_PSA, 3)
+  
+  colnames(samp_PSA) <- paste0("samp.%.", groups_unique)
+  colnames(pop_PSA) <- paste0("pop.%.", groups_unique)
+  
+  psa <- data.frame(
+    allele = colnames(mat_bin),
+    pop_PSA,
+    samp_PSA,
+    row.names = NULL,
+    check.names = FALSE
+  )
+  
+  pop_cols <- grep("^pop\\.%.", names(psa), value = TRUE)
+  samp_cols <- grep("^samp\\.%.", names(psa), value = TRUE)
+  
+  pop_max <- max.col(psa[, pop_cols, drop = FALSE], ties.method = "first")
+  samp_max <- max.col(psa[, samp_cols, drop = FALSE], ties.method = "first")
+  
+  psa$PSA.pop <- sub("^pop\\.%\\.", "", pop_cols[pop_max])
+  psa$PSA.samp <- sub("^samp\\.%\\.", "", samp_cols[samp_max])
+  
+  psa
 }
-
 
 # -----------------------------------------------------------------------------  
 # Función para ejecutar el análisis global y por grupos.
 RGUC <- function(mat, pops, allele_perc = 0.1, pop_perc = 0.1, Fst = 0.099, groups = NULL) {
   
-#   mat <- matriz_o
-#   pops <- sierras$population
-#   allele_perc <- 0.1
-#   pop_perc <- 0.5
-#   groups <- sierras$group
-  # Seleccionar alelos de baja frecuencia
   alleles <- select_alleles(mat, pops, allele_perc, pop_perc)
   
-  # Análisis global
   resultados_global <- .compute_genetic_indices(mat, pops, alleles)
   
-  # Análisis por grupo si se proporciona la variable groups
   if (!is.null(groups)) {
     grupos <- unique(groups)
+    
     resultados_grupos <- lapply(grupos, function(grupo) {
       indices <- groups == grupo
-      .compute_genetic_indices(mat[indices, ], pops[indices], alleles)
+      .compute_genetic_indices(mat[indices, , drop = FALSE], pops[indices], alleles)
     })
+    
     names(resultados_grupos) <- grupos
   } else {
     resultados_grupos <- NULL
   }
   
-  psa <- .calculate_psa(mat, pops, groups, allele_perc, pop_perc)
+  if (!is.null(groups)) {
+    psa <- .calculate_psa(mat, pops, groups, alleles)
+  } else {
+    psa <- NULL
+  }
   
-  # Calcular número de poblaciones necesarias
   needed_pops <- .calculate_needed_pops(Fst, nmax = length(unique(pops)))
   
   list(
@@ -292,7 +393,6 @@ RGUC <- function(mat, pops, allele_perc = 0.1, pop_perc = 0.1, Fst = 0.099, grou
     needed_pops = needed_pops
   )
 }
-
 
 
 # -----------------------------------------------------------------------------  
