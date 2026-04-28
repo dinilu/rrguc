@@ -31,6 +31,6 @@ Imports:
     tibble,
     magrittr
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 URL: https://dnietolugilde.com/rrguc, https://github.com/dinilu/rrguc
 BugReports: https://github.com/dinilu/rrguc/issues

@@ -115,17 +115,16 @@ rrguc_ui <- function() {
             ),
             
             uiOutput("column_select_ui"),
-            
-            conditionalPanel(
-              condition = "output.fileUploaded",
-              div(
-                style = "text-align: center; margin-top: 20px;",
-                actionButton(
-                  inputId = "continue_preview",
-                  label = "Preview imported data",
-                  title = "Preview standardized data before filtering",
-                  `data-toggle` = "tooltip"
-                )
+          ),
+          conditionalPanel(
+            condition = "output.fileUploaded",
+            div(
+              style = "text-align: center; margin-top: 20px; margin-bottom: 20px;",
+              actionButton(
+                inputId = "continue_preview",
+                label = "Preview imported data",
+                title = "Preview standardized data before filtering",
+                `data-toggle` = "tooltip"
               )
             )
           )
@@ -167,7 +166,7 @@ rrguc_ui <- function() {
         column(
           width = 12,
           div(
-            style = "text-align: center; margin-top: 20px;",
+            style = "text-align: center; margin-top: 20px; margin-bottom: 20px;",
             actionButton(
               inputId = "continue_filters",
               label = "Confirm and continue to filters",
@@ -233,13 +232,25 @@ rrguc_ui <- function() {
       )
     ),
     fluidRow(
-      div(style = "text-align: center;",
-          actionButton("process_data",
-                       "Process Data",
-                       class = "btn-primary"))
-      
+      column(
+        width = 12,
+        
+        shiny::div(
+          style = "margin-top: 20px; margin-bottom: 20px;",
+          shiny::uiOutput("pending_changes_ui")
+        ),
+        
+        shiny::div(
+          style = "text-align: center; margin-top: 20px; margin-bottom: 20px;",
+          shiny::actionButton(
+            "process_data",
+            "Process Data",
+            icon = shiny::icon("calculator"),
+            class = "btn-primary"
+          )
+        )
+      )
     ),
-    uiOutput("pending_changes_ui")
   ),
   
   tabPanel(

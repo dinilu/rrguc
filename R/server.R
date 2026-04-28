@@ -250,6 +250,8 @@ rrguc_server <- function(input, output, session) {
     )
   })
   
+  filters_changed <- shiny::reactiveVal(FALSE)
+  results_processed <- shiny::reactiveVal(FALSE)
   
   # Funcion para procesar los datos geneticos (MODIFICADA)
   resultados <- eventReactive(input$process_data, {
@@ -281,6 +283,17 @@ rrguc_server <- function(input, output, session) {
         )
       )
       
+      selected_alleles <- select_alleles(
+        mat = matriz_genetica,
+        pops = pop_info$pop,
+        allele_perc = input$allele_perc,
+        pop_perc = input$pop_perc
+      )
+      
+      if (length(selected_alleles) < 2) {
+        return(NULL)
+      }
+      
       salida <- genetic_process(
         matriz_genetica,
         pop_info,
@@ -306,7 +319,17 @@ rrguc_server <- function(input, output, session) {
     })
   })
   
-  observeEvent(input$continue_preview, {
+  shiny::observeEvent(
+    list(input$allele_perc, input$pop_perc, input$fst),
+    {
+      if (isTRUE(results_processed())) {
+        filters_changed(TRUE)
+      }
+    },
+    ignoreInit = TRUE
+  )
+  
+  shiny::observeEvent(input$continue_preview, {
     req(standardized_data())
     
     updateTabsetPanel(session, "navbar", selected = "Preview Data")
@@ -323,18 +346,62 @@ rrguc_server <- function(input, output, session) {
   
   
   observeEvent(input$process_data, {
-    updateTabsetPanel(session, "navbar", selected = "Results")
+    req(standardized_data())
+    req(input$allele_perc, input$pop_perc, input$fst)
+    
+    inputs <- extract_genetic_inputs(standardized_data())
+    
+    matriz_genetica <- inputs$matriz_genetica
+    pop_info <- inputs$pop_info
+    
+    if (ncol(matriz_genetica) == 0) {
+      shiny::showModal(
+        shiny::modalDialog(
+          title = "No genetic data available",
+          "There are no genetic columns available for the analysis.",
+          easyClose = TRUE,
+          footer = shiny::modalButton("OK")
+        )
+      )
+      return(NULL)
+    }
+    
+    selected_alleles <- select_alleles(
+      mat = matriz_genetica,
+      pops = pop_info$pop,
+      allele_perc = input$allele_perc,
+      pop_perc = input$pop_perc
+    )
+    
+    if (length(selected_alleles) < 2) {
+      shiny::showModal(
+        shiny::modalDialog(
+          title = "Insufficient rare alleles selected",
+          paste(
+            "At least two rare alleles are needed to perform the downstream",
+            "calculations. Please relax the filter values before continuing."
+          ),
+          easyClose = TRUE,
+          footer = shiny::modalButton("OK")
+        )
+      )
+      return(NULL)
+    }
+    
+    results_processed(TRUE)
+    filters_changed(FALSE)
+    
+    shiny::updateTabsetPanel(session, "navbar", selected = "Results")
     shinyjs::runjs("window.scrollTo(0, 0);")
   })
   
   # Mensaje para cambios no aplicados
-  output$pending_changes_ui <- renderUI({
-    # Solo muestra el mensaje despues del primer clic
-    if (input$process_data > 0) {
-      div(
+  output$pending_changes_ui <- shiny::renderUI({
+    if (isTRUE(filters_changed())) {
+      shiny::div(
         class = "alert alert-warning",
-        icon("exclamation-triangle"), 
-        "Click 'Process Data' to apply changes"
+        shiny::icon("exclamation-triangle"),
+        " Filter settings have changed. Click 'Process Data' to update the results."
       )
     }
   })
