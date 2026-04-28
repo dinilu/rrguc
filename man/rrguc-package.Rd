@@ -11,6 +11,7 @@ Tools and a Shiny application for genetic conservation analyses.
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://dnietolugilde.com/rrguc}
   \item \url{https://github.com/dinilu/rrguc}
   \item Report bugs at \url{https://github.com/dinilu/rrguc/issues}
 }

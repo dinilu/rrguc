@@ -6,6 +6,8 @@ Tools and a Shiny application for genetic conservation analyses.
 
 Useful links:
 
+- <https://dnietolugilde.com/rrguc>
+
 - <https://github.com/dinilu/rrguc>
 
 - Report bugs at <https://github.com/dinilu/rrguc/issues>

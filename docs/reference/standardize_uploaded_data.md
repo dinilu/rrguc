@@ -18,7 +18,7 @@ standardize_uploaded_data(dta, col_map)
 - col_map:
 
   A data frame produced by
-  [`make_column_map()`](https://dinilu.github.io/rrguc/reference/make_column_map.md)
+  [`make_column_map()`](https://dnietolugilde.com/rrguc/reference/make_column_map.md)
   with columns `col_names` and `standard_col_names`.
 
 ## Value

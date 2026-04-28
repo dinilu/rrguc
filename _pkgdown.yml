@@ -1,33 +1,4 @@
-url: https://dinilu.github.io/rrguc/
-
+url: https://dnietolugilde.com/rrguc/
 template:
   bootstrap: 5
 
-navbar:
-  structure:
-    left: [intro, reference]
-    right: [github]
-
-reference:
-  - title: "Run application"
-    contents:
-      - run_app
-  - title: "Shiny components"
-    contents:
-      - rrguc_ui
-      - rrguc_server
-  - title: "Data import and preparation"
-    contents:
-      - has_valid_coordinates
-      - read_uploaded_data
-      - standardize_uploaded_data
-      - make_column_map
-      - extract_genetic_inputs
-      - make_data_preview
-      - find_best_match
-  - title: "Genetic analysis"
-    contents:
-      - select_alleles
-      - RGUC
-      - genetic_process
-      - make_psa_r_table

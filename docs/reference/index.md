@@ -1,41 +1,32 @@
 # Package index
 
-## Run application
+## All functions
 
-- [`run_app()`](https://dinilu.github.io/rrguc/reference/run_app.md) :
-  Run the rrguc Shiny application
-
-## Shiny components
-
-- [`rrguc_ui()`](https://dinilu.github.io/rrguc/reference/rrguc_ui.md) :
-  Shiny application user interface
-- [`rrguc_server()`](https://dinilu.github.io/rrguc/reference/rrguc_server.md)
-  : Shiny application server
-
-## Data import and preparation
-
-- [`has_valid_coordinates()`](https://dinilu.github.io/rrguc/reference/has_valid_coordinates.md)
-  : Check whether a data frame contains valid geographic coordinates
-- [`read_uploaded_data()`](https://dinilu.github.io/rrguc/reference/read_uploaded_data.md)
-  : Read uploaded data
-- [`standardize_uploaded_data()`](https://dinilu.github.io/rrguc/reference/standardize_uploaded_data.md)
-  : Standardize uploaded data columns
-- [`make_column_map()`](https://dinilu.github.io/rrguc/reference/make_column_map.md)
-  : Create a column mapping table
-- [`extract_genetic_inputs()`](https://dinilu.github.io/rrguc/reference/extract_genetic_inputs.md)
+- [`extract_genetic_inputs()`](https://dnietolugilde.com/rrguc/reference/extract_genetic_inputs.md)
   : Extract genetic matrix and population information
-- [`make_data_preview()`](https://dinilu.github.io/rrguc/reference/make_data_preview.md)
-  : Create a limited data preview
-- [`find_best_match()`](https://dinilu.github.io/rrguc/reference/find_best_match.md)
+- [`find_best_match()`](https://dnietolugilde.com/rrguc/reference/find_best_match.md)
   : Find the first best column-name match
-
-## Genetic analysis
-
-- [`select_alleles()`](https://dinilu.github.io/rrguc/reference/select_alleles.md)
-  : Select low-frequency alleles
-- [`RGUC()`](https://dinilu.github.io/rrguc/reference/RGUC.md) : Run the
-  RGUC genetic conservation analysis
-- [`genetic_process()`](https://dinilu.github.io/rrguc/reference/genetic_process.md)
+- [`genetic_process()`](https://dnietolugilde.com/rrguc/reference/genetic_process.md)
   : Process a complete genetic analysis
-- [`make_psa_r_table()`](https://dinilu.github.io/rrguc/reference/make_psa_r_table.md)
+- [`has_valid_coordinates()`](https://dnietolugilde.com/rrguc/reference/has_valid_coordinates.md)
+  : Check whether a data frame contains valid geographic coordinates
+- [`make_column_map()`](https://dnietolugilde.com/rrguc/reference/make_column_map.md)
+  : Create a column mapping table
+- [`make_data_preview()`](https://dnietolugilde.com/rrguc/reference/make_data_preview.md)
+  : Create a limited data preview
+- [`make_psa_r_table()`](https://dnietolugilde.com/rrguc/reference/make_psa_r_table.md)
   : Build the PSA and R summary table
+- [`read_uploaded_data()`](https://dnietolugilde.com/rrguc/reference/read_uploaded_data.md)
+  : Read uploaded data
+- [`RGUC()`](https://dnietolugilde.com/rrguc/reference/RGUC.md) : Run
+  the RGUC genetic conservation analysis
+- [`rrguc_server()`](https://dnietolugilde.com/rrguc/reference/rrguc_server.md)
+  : Shiny application server
+- [`rrguc_ui()`](https://dnietolugilde.com/rrguc/reference/rrguc_ui.md)
+  : Shiny application user interface
+- [`run_app()`](https://dnietolugilde.com/rrguc/reference/run_app.md) :
+  Run the rrguc Shiny application
+- [`select_alleles()`](https://dnietolugilde.com/rrguc/reference/select_alleles.md)
+  : Select low-frequency alleles
+- [`standardize_uploaded_data()`](https://dnietolugilde.com/rrguc/reference/standardize_uploaded_data.md)
+  : Standardize uploaded data columns

@@ -14,7 +14,7 @@ results.
 - res:
 
   A result list returned by
-  [`RGUC()`](https://dinilu.github.io/rrguc/reference/RGUC.md).
+  [`RGUC()`](https://dnietolugilde.com/rrguc/reference/RGUC.md).
 
 ## Value
 
