@@ -1,0 +1,32 @@
+# Package index
+
+## All functions
+
+- [`RGUC()`](https://dnietolugilde.com/rrguc/reference/RGUC.md) : Run
+  the RGUC genetic conservation analysis
+- [`extract_genetic_inputs()`](https://dnietolugilde.com/rrguc/reference/extract_genetic_inputs.md)
+  : Extract genetic matrix and population information
+- [`find_best_match()`](https://dnietolugilde.com/rrguc/reference/find_best_match.md)
+  : Find the first best column-name match
+- [`genetic_process()`](https://dnietolugilde.com/rrguc/reference/genetic_process.md)
+  : Process a complete genetic analysis
+- [`has_valid_coordinates()`](https://dnietolugilde.com/rrguc/reference/has_valid_coordinates.md)
+  : Check whether a data frame contains valid geographic coordinates
+- [`make_column_map()`](https://dnietolugilde.com/rrguc/reference/make_column_map.md)
+  : Create a column mapping table
+- [`make_data_preview()`](https://dnietolugilde.com/rrguc/reference/make_data_preview.md)
+  : Create a limited data preview
+- [`make_psa_r_table()`](https://dnietolugilde.com/rrguc/reference/make_psa_r_table.md)
+  : Build the PSA and R summary table
+- [`read_uploaded_data()`](https://dnietolugilde.com/rrguc/reference/read_uploaded_data.md)
+  : Read uploaded data
+- [`rrguc_server()`](https://dnietolugilde.com/rrguc/reference/rrguc_server.md)
+  : Shiny application server
+- [`rrguc_ui()`](https://dnietolugilde.com/rrguc/reference/rrguc_ui.md)
+  : Shiny application user interface
+- [`run_app()`](https://dnietolugilde.com/rrguc/reference/run_app.md) :
+  Run the rrguc Shiny application
+- [`select_alleles()`](https://dnietolugilde.com/rrguc/reference/select_alleles.md)
+  : Select low-frequency alleles
+- [`standardize_uploaded_data()`](https://dnietolugilde.com/rrguc/reference/standardize_uploaded_data.md)
+  : Standardize uploaded data columns
