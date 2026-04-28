@@ -259,65 +259,95 @@ rrguc_ui <- function() {
       titlePanel("Results"),
       fluidRow(
         column(
-          width = 12,
-          wellPanel(
-            h4("Parameters and alleles summary"), 
-            uiOutput("alleles_summary")
-          )
-        )
-      ),
-      wellPanel(
-        fluidRow(
-          h4("Number of populations to be preserve"),
-          column(
-            width = 8,
-            shinycssloaders::withSpinner(plotly::plotlyOutput("diversity_plot"))
+          width = 9,
+          shiny::div(
+            style = "margin-top: 20px; margin-bottom: 20px;",
+            wellPanel(
+              h4("Parameters and alleles summary"), 
+              uiOutput("alleles_summary")
+            )
           ),
-          column(
-            width = 4,
-            tags$details(
-              open = NA,
-              tags$summary(
-                div(class = "custom-title", icon("table"), "Needed Pops")
+          
+          shiny::div(
+            style = "margin-top: 20px; margin-bottom: 20px;",
+            wellPanel(
+              fluidRow(
+                h4("Number of populations to be preserve"),
+                column(
+                  width = 8,
+                  shinycssloaders::withSpinner(plotly::plotlyOutput("diversity_plot"))
+                ),
+                column(
+                  width = 4,
+                  tags$details(
+                    open = NA,
+                    tags$summary(
+                      div(class = "custom-title", icon("table"), "Needed Pops")
+                    ),
+                    shinycssloaders::withSpinner(DT::DTOutput("group_needed_table"))
+                  )
+                )
+              )
+            )
+          ),
+          
+          # Seccion: Ratio de esfuerzo de muestreo
+          shiny::div(
+            style = "margin-top: 20px; margin-bottom: 20px;",
+            wellPanel(
+              h4("Conservation priority"), 
+              DT::DTOutput("psa_table")
+            )
+          ),
+          
+          shiny::div(
+            style = "margin-top: 20px; margin-bottom: 20px;",
+            wellPanel(
+              h4("Preferred Sampling Area (PSA) per allele:"),
+              tags$details(
+                tags$summary(
+                  div(class = "custom-title", icon("table"), "Summary by Group")
+                ),
+                shinycssloaders::withSpinner(DT::DTOutput("group_summary_table"))
               ),
-              shinycssloaders::withSpinner(DT::DTOutput("group_needed_table"))
+              
+              h4("Frequencies and extinction probability per allele:"),
+              shinycssloaders::withSpinner(DT::DTOutput("analysis_table")),
+              
+              h4("Risk of allelic losses:"),
+            
+              h5("Overall:"),
+              div(
+                style = "display: flex; justify-content: center;",
+                shinycssloaders::withSpinner(plotly::plotlyOutput("global_plot",
+                                                                  height = "400px",
+                                                                  width = "600px"))
+              ),
+              h5("Groups:"),
+              shinycssloaders::withSpinner(uiOutput("group_plots_ui"))
+            )
+          )
+        ),
+        
+        shiny::column(
+          width = 3,
+          shiny::div(
+            style = "position: sticky; top: 20px; margin-top: 20px; margin-bottom: 20px;",
+            bslib::card(
+              bslib::card_header("Export results"),
+              bslib::card_body(
+                shiny::downloadButton(
+                  "download_tables_xlsx",
+                  "Download tables (.xlsx)"
+                )
+              )
             )
           )
         )
-      ),
-      
-      # Seccion: Ratio de esfuerzo de muestreo
-      wellPanel(
-        h4("Conservation priority"), 
-        DT::DTOutput("psa_table"),
-
-      ),
-      
-      wellPanel(
-        h4("Preferred Sampling Area (PSA) per allele:"),
-        tags$details(
-          tags$summary(
-            div(class = "custom-title", icon("table"), "Summary by Group")
-          ),
-          shinycssloaders::withSpinner(DT::DTOutput("group_summary_table"))
-        ),
-        h4("Frequencies and extinction probability per allele:"),
-        shinycssloaders::withSpinner(DT::DTOutput("analysis_table")),
-        h4("Risk of allelic losses:"),
-        h5("Overall:"),
-        div(
-          style = "display: flex; justify-content: center;",
-          shinycssloaders::withSpinner(plotly::plotlyOutput("global_plot",
-                                   height = "400px",
-                                   width = "600px"))
-        ),
-        h5("Groups:"),
-        shinycssloaders::withSpinner(uiOutput("group_plots_ui"))
       )
     )
   ),
   
-
   tabPanel(
     "Maps",
     shiny::fluidPage(

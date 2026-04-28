@@ -903,5 +903,42 @@ rrguc_server <- function(input, output, session) {
       ) %>%
       leaflet::addMiniMap(toggleDisplay = TRUE)
   })
+  
+  output$download_tables_xlsx <- shiny::downloadHandler(
+    filename = function() {
+      paste0("rrguc_results_", Sys.Date(), ".xlsx")
+    },
+    content = function(file) {
+      res <- resultados()
+      req(res)
+      
+      wb <- openxlsx::createWorkbook()
+      
+      analysis_table <- res$selected_alleles %>%
+        dplyr::select(-dplyr::any_of(c("logLo", "logLe"))) %>%
+        dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~round(., 3)))
+      
+      psa_table <- make_psa_r_table(res$group_summary, res$rtable)
+      group_needed <- res$group_needed %>%
+        dplyr::mutate(dplyr::across(dplyr::where(is.numeric), ~round(., 3)))
+      
+      openxlsx::addWorksheet(wb, "Selected alleles")
+      openxlsx::writeData(wb, "Selected alleles", analysis_table)
+      
+      openxlsx::addWorksheet(wb, "Conservation priority")
+      openxlsx::writeData(wb, "Conservation priority", psa_table)
+      
+      openxlsx::addWorksheet(wb, "PSA by group")
+      openxlsx::writeData(wb, "PSA by group", res$group_summary)
+      
+      openxlsx::addWorksheet(wb, "R table")
+      openxlsx::writeData(wb, "R table", res$rtable)
+      
+      openxlsx::addWorksheet(wb, "Needed populations")
+      openxlsx::writeData(wb, "Needed populations", group_needed)
+      
+      openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
+    }
+  )
 }
 
