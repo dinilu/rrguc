@@ -1,0 +1,22 @@
+utils::globalVariables(c(
+  "allele_perc",
+  "value",
+  "name",
+  "..eq.label..",
+  "R",
+  "lat",
+  "lon",
+  "logLo",
+  "logLe",
+  "pop",
+  "perc",
+  "Group",
+  "% PSA Sample",
+  "psa_s",
+  "% PSA Pop",
+  "psa_p",
+  "Priority score pop",
+  "priority_pop",
+  "Priority score sample",
+  "priority_sample"
+))

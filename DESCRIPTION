@@ -1,0 +1,36 @@
+Package: rrguc
+Title: Relevant Genetic Units for Conservation (RGUCs) in R, the Shiny Application
+Version: 0.1.0
+Authors@R: c(
+    person("Paula", "Morales Sandoica", role = "aut"),
+    person("Daniel", "Romera Romera", role = "aut"),
+    person("Diego", "Nieto Lugilde", email = "bv2nilud@uco", role = c("aut", "cre"))
+  )
+Description: Provides a Shiny application for analysing population genetic data and identifying Relevant Genetic Units for Conservation (RGUCs).
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Depends:
+    R (>= 4.1.0)
+Imports:
+    shiny,
+    bslib,
+    leaflet,
+    readxl,
+    shinyjs,
+    ggpubr,
+    shinycssloaders,
+    plotly,
+    dplyr,
+    ggplot2,
+    scales,
+    data.table,
+    DT,
+    htmltools,
+    tidyr,
+    tibble,
+    magrittr
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+URL: https://dinilu.github.io/rrguc, https://github.com/dinilu/rrguc
+BugReports: https://github.com/dinilu/rrguc/issues
